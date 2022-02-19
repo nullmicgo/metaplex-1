@@ -1,4 +1,3 @@
-import { sleep } from '@oyster/common';
 import {
   Blockhash,
   Commitment,
@@ -12,6 +11,7 @@ import {
   TransactionInstruction,
   TransactionSignature,
 } from '@solana/web3.js';
+import { sleep } from '@oyster/common';
 import log from 'loglevel';
 
 interface BlockhashAndFeeCalculator {
@@ -27,10 +27,9 @@ export const getUnixTs = () => {
 
 export const envFor = (connection: Connection): string => {
   const endpoint = (connection as any)._rpcEndpoint;
-  console.log(connection);
   const regex = /https:\/\/api.([^.]*).solana.com/;
   const match = endpoint.match(regex);
-  if (match?.length > 0) {
+  if (match[1]) {
     return match[1];
   }
   return 'mainnet-beta';

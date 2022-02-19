@@ -53,7 +53,11 @@ const AuctionItemCard = ({
       pubkey={current.metadata.pubkey}
       preview={false}
       onClick={onSelect}
-      className={isSelected ? 'selected-card' : 'not-selected-card'}
+      className={
+        isSelected
+          ? 'selected-card art-card-for-selector'
+          : 'not-selected-card art-card-for-selector'
+      }
       onClose={onClose}
     />
   );

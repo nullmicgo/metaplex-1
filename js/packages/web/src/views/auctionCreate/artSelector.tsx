@@ -86,7 +86,7 @@ export const ArtSelector = (props: ArtSelectorProps) => {
           className="content-action"
           style={{ overflowY: 'auto', height: '50vh' }}
         >
-          <div className="artwork-grid" style={{ maxHeight: '50%' }}>
+          <div className="artwork-grid">
             {items.map(m => {
               const id = m.metadata.pubkey;
               const isSelected = selectedItems.has(id);
@@ -112,14 +112,12 @@ export const ArtSelector = (props: ArtSelectorProps) => {
               };
 
               return (
-                <div key={id}>
-                  <AuctionItemCard
-                    key={id}
-                    isSelected={isSelected}
-                    current={m}
-                    onSelect={onSelect}
-                  />
-                </div>
+                <AuctionItemCard
+                  key={id}
+                  isSelected={isSelected}
+                  current={m}
+                  onSelect={onSelect}
+                />
               );
             })}
           </div>

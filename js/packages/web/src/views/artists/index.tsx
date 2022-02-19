@@ -1,4 +1,4 @@
-import { Layout } from 'antd';
+import { Col, Layout } from 'antd';
 import React from 'react';
 import Masonry from 'react-masonry-css';
 import { Link } from 'react-router-dom';
@@ -16,6 +16,7 @@ export const ArtistsView = () => {
     700: 2,
     500: 1,
   };
+
   const items = Object.values(whitelistedCreatorsByCreator);
   const artistGrid = (
     <Masonry
@@ -46,7 +47,7 @@ export const ArtistsView = () => {
   return (
     <Layout style={{ margin: 0, marginTop: 30 }}>
       <Content style={{ display: 'flex', flexWrap: 'wrap' }}>
-        {artistGrid}
+        <Col style={{ width: '100%', marginTop: 10 }}>{artistGrid}</Col>
       </Content>
     </Layout>
   );

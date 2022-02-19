@@ -1,7 +1,7 @@
 import * as anchor from '@project-serum/anchor';
 
 import { MintLayout, TOKEN_PROGRAM_ID, Token } from '@solana/spl-token';
-import { SystemProgram, SYSVAR_SLOT_HASHES_PUBKEY } from '@solana/web3.js';
+import { SystemProgram } from '@solana/web3.js';
 import { sendTransactions } from './connection';
 
 import {
@@ -29,7 +29,6 @@ interface CandyMachineState {
   isSoldOut: boolean;
   isActive: boolean;
   isPresale: boolean;
-  isWhitelistOnly: boolean;
   goLiveDate: anchor.BN;
   price: anchor.BN;
   gatekeeper: null | {
@@ -160,17 +159,23 @@ export const getCandyMachineState = async (
   connection: anchor.web3.Connection,
 ): Promise<CandyMachineAccount> => {
   const provider = new anchor.Provider(connection, anchorWallet, {
-    preflightCommitment: 'processed',
+    preflightCommitment: 'recent',
   });
 
   const idl = await anchor.Program.fetchIdl(CANDY_MACHINE_PROGRAM, provider);
 
-  const program = new anchor.Program(idl!, CANDY_MACHINE_PROGRAM, provider);
+  const program = new anchor.Program(idl, CANDY_MACHINE_PROGRAM, provider);
 
   const state: any = await program.account.candyMachine.fetch(candyMachineId);
   const itemsAvailable = state.data.itemsAvailable.toNumber();
   const itemsRedeemed = state.itemsRedeemed.toNumber();
   const itemsRemaining = itemsAvailable - itemsRedeemed;
+
+  const presale =
+    state.data.whitelistMintSettings &&
+    state.data.whitelistMintSettings.presale &&
+    (!state.data.goLiveDate ||
+      state.data.goLiveDate.toNumber() > new Date().getTime() / 1000);
 
   return {
     id: candyMachineId,
@@ -180,9 +185,16 @@ export const getCandyMachineState = async (
       itemsRedeemed,
       itemsRemaining,
       isSoldOut: itemsRemaining === 0,
-      isActive: false,
-      isPresale: false,
-      isWhitelistOnly: false,
+      isActive:
+        (presale ||
+          state.data.goLiveDate?.toNumber() < new Date().getTime() / 1000) &&
+        (state.data.endSettings
+          ? state.data.endSettings.endSettingType.date
+            ? state.data.endSettings.number.toNumber() >
+              new Date().getTime() / 1000
+            : itemsRedeemed < state.data.endSettings.number.toNumber()
+          : true),
+      isPresale: presale,
       goLiveDate: state.data.goLiveDate,
       treasury: state.wallet,
       tokenMint: state.tokenMint,
@@ -426,7 +438,7 @@ export const mintOneToken = async (
         systemProgram: SystemProgram.programId,
         rent: anchor.web3.SYSVAR_RENT_PUBKEY,
         clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
-        recentBlockhashes: SYSVAR_SLOT_HASHES_PUBKEY,
+        recentBlockhashes: anchor.web3.SYSVAR_SLOT_HASHES_PUBKEY,
         instructionSysvarAccount: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
       },
       remainingAccounts:

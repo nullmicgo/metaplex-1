@@ -1,28 +1,28 @@
 import {
-  ARWEAVE_UPLOAD_ENDPOINT,
-  Attribute,
   createAssociatedTokenAccountInstruction,
-  createMasterEditionV3,
-  createMetadataV2,
-  updateMetadataV2,
   createMint,
-  Creator,
-  ENDPOINT_NAME,
-  findProgramAddress,
-  getAssetCostToStore,
-  notify,
+  createMetadata,
   programIds,
+  notify,
+  ENDPOINT_NAME,
+  updateMetadata,
+  createMasterEdition,
   sendTransactionWithRetry,
+  Data,
+  Creator,
+  findProgramAddress,
   StringPublicKey,
   toPublicKey,
   WalletSigner,
+  Attribute,
+  getAssetCostToStore,
+  ARWEAVE_UPLOAD_ENDPOINT,
 } from '@oyster/common';
 import React, { Dispatch, SetStateAction } from 'react';
 import { MintLayout, Token } from '@solana/spl-token';
 import {
-  Connection,
   Keypair,
-  PublicKey,
+  Connection,
   SystemProgram,
   TransactionInstruction,
 } from '@solana/web3.js';
@@ -30,11 +30,6 @@ import crypto from 'crypto';
 
 import { AR_SOL_HOLDER_ID } from '../utils/ids';
 import BN from 'bn.js';
-import {
-  Collection,
-  DataV2,
-  Uses,
-} from '@metaplex-foundation/mpl-token-metadata';
 
 const RESERVED_TXN_MANIFEST = 'manifest.json';
 const RESERVED_METADATA = 'metadata.json';
@@ -89,8 +84,6 @@ export const mintNFT = async (
     properties: any;
     creators: Creator[] | null;
     sellerFeeBasisPoints: number;
-    collection?: string;
-    uses?: Uses;
   },
   progressCallback: Dispatch<SetStateAction<number>>,
   maxSupply?: number,
@@ -117,10 +110,6 @@ export const mintNFT = async (
         };
       }),
     },
-    collection: metadata.collection
-      ? new PublicKey(metadata.collection).toBase58()
-      : null,
-    use: metadata.uses ? metadata.uses : null,
   };
 
   const realFiles: File[] = [
@@ -182,20 +171,13 @@ export const mintNFT = async (
     toPublicKey(mintKey),
   );
 
-  const metadataAccount = await createMetadataV2(
-    new DataV2({
+  const metadataAccount = await createMetadata(
+    new Data({
       symbol: metadata.symbol,
       name: metadata.name,
       uri: ' '.repeat(64), // size of url for arweave
       sellerFeeBasisPoints: metadata.sellerFeeBasisPoints,
       creators: metadata.creators,
-      collection: metadata.collection
-        ? new Collection({
-            key: new PublicKey(metadata.collection).toBase58(),
-            verified: false,
-          })
-        : null,
-      uses: metadata.uses || null,
     }),
     payerPublicKey,
     mintKey,
@@ -266,20 +248,13 @@ export const mintNFT = async (
 
     // TODO: connect to testnet arweave
     const arweaveLink = `https://arweave.net/${metadataFile.transactionId}`;
-    await updateMetadataV2(
-      new DataV2({
-        symbol: metadata.symbol,
+    await updateMetadata(
+      new Data({
         name: metadata.name,
+        symbol: metadata.symbol,
         uri: arweaveLink,
-        sellerFeeBasisPoints: metadata.sellerFeeBasisPoints,
         creators: metadata.creators,
-        collection: metadata.collection
-          ? new Collection({
-              key: new PublicKey(metadata.collection).toBase58(),
-              verified: false,
-            })
-          : null,
-        uses: metadata.uses || null,
+        sellerFeeBasisPoints: metadata.sellerFeeBasisPoints,
       }),
       undefined,
       undefined,
@@ -303,7 +278,7 @@ export const mintNFT = async (
     progressCallback(7);
     // // In this instruction, mint authority will be removed from the main mint, while
     // // minting authority will be maintained for the Printing mint (which we want.)
-    await createMasterEditionV3(
+    await createMasterEdition(
       maxSupply !== undefined ? new BN(maxSupply) : undefined,
       mintKey,
       payerPublicKey,
